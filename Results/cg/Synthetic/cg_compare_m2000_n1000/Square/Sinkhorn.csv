@@ -1,0 +1,2 @@
+algo,m,n,iter,opt,eta,row_resid,col_resid,cost,time,rel_err,abs_err,rel_conv,grad_norm,cg_iter,cg_time,kkt_err,Delta_p,Delta_d,Delta_c,newton_iter,first_stage_iter
+Sinkhorn,2000,1000,0,,0.0001,1110.5200819618412,1115.0019642108596,0.14630747855241,0.0,,,1.0,1573.68492165192,0,0,,,,,0,0

@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# PyCharm
+.idea/
+
+# macOS
+.DS_Store
+
+# Temporary files
+*.log
+
+data/ImageNet
+Color_transfer/data1/opt_Cab_1.npz
+Color_transfer/data2/opt_Cab_2.npz
+Color_transfer/data3/opt_Cab_3.npz

@@ -1,0 +1,220 @@
+import numpy as np
+import os, glob, inspect
+import pandas as pd
+import matplotlib.pyplot as plt
+from Alg.Algorithm_Import import load_results
+plt.rc('font', family='Times New Roman')
+plt.rcParams.update({
+    'figure.figsize': (8, 5.5),
+    'figure.subplot.left': 0.15,
+    'figure.subplot.right': 0.95,
+    'figure.subplot.bottom': 0.15,
+    'figure.subplot.top': 0.95,
+    # ===== Title =====
+    'axes.titlesize': 28,
+
+    # ===== Axis labels =====
+    'axes.labelsize': 28,
+
+    # ===== Tick labels =====
+    'xtick.labelsize': 23,
+    'ytick.labelsize': 25,
+
+    # ===== Legend =====
+    'legend.fontsize': 19,
+    'legend.frameon': True,
+    'legend.framealpha': 0.8,
+
+    # ===== Lines =====
+    'lines.linewidth': 3,
+})
+
+
+def plot_from_loaded(result_root, data, ylog=True, show_bands=True, title_prefix="", title_suffix="",
+                     downsample_map=None, default_stride=1, solid_algos=None, figure_show=True):
+    if not data:
+        print("No data to plot.")
+        return
+
+    downsample_map = downsample_map or {}
+
+    interest = 'abs_err'
+
+    def sanitize_df(df: pd.DataFrame) -> pd.DataFrame:
+        df = df.copy()
+        for col in ["iter", "time", interest]:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+        df = df.dropna(subset=["iter", interest])
+        if "time" in df.columns:
+            t = df["time"].to_numpy(dtype=float)
+            if t.size > 1 and not np.all(np.diff(t) >= 0):
+                df["time"] = np.cumsum(t)
+        return df.sort_values("iter")
+
+    keys_to_skip = {"SSNS", "SPLR", "IPINS", "IBSN_nodr1", "phase1_dr1_newton_profile"}
+    algos = [key for key in data.keys() if key not in keys_to_skip]
+    algos.remove("IBSN")
+    algos.append("IBSN")
+    # algos = data.keys()
+    cmap = plt.cm.get_cmap("tab10", len(algos))
+    color_map = {name: cmap(i) for i, name in enumerate(algos)}
+
+    if isinstance(solid_algos, str):
+        solid_set = {solid_algos}
+    elif solid_algos is None:
+        solid_set = set()
+    else:
+        solid_set = set(solid_algos)
+
+    def ls(name: str) -> str:
+        return "-" if name in solid_set else "--"
+
+    # ========== Gap vs Iteration ==========
+    plt.figure(figsize=(8, 5))
+    for name in algos:
+        stride = int(downsample_map.get(name, default_stride))
+        # for d in data[name]:
+        #     sanitize_df(d)
+        dfs = [sanitize_df(d) for d in data[name]]
+
+        curves = []
+        for d in dfs:
+            if stride > 1:
+                d = d.iloc[::stride, :].reset_index(drop=True)
+            arr = d[interest].to_numpy(dtype=float)
+            arr = arr[np.isfinite(arr)]
+            if arr.size > 0:
+                curves.append(arr)
+
+        if len(curves) == 0:
+            continue
+
+        Lmin = min(len(c) for c in curves)
+        if Lmin == 0:
+            continue
+        M = np.vstack([c[:Lmin] for c in curves])
+
+        mean_err = M.mean(0)
+        std_err  = M.std(0)
+        x = np.arange(Lmin)
+        plt.plot(x, mean_err, color=color_map[name], linestyle=ls(name), label=name)
+        # if show_bands:
+        #     plt.fill_between(x, mean_err - std_err, mean_err + std_err,
+        #                      color=color_map[name], alpha=0.15)
+
+    plt.xlabel("Iteration")
+    plt.ylabel("Gap")
+    if ylog:
+        plt.yscale("log")
+    plt.grid(alpha=0.3)
+    plt.legend()
+    plt.title(f"{title_prefix} {title_suffix}")
+    plt.tight_layout()
+    plt.savefig(result_root + f"/alg_compare_iter_{title_prefix}_{title_suffix}.pdf")
+    if figure_show:
+        plt.show()
+
+    # ========== Gap vs Time ==========
+    plt.figure(figsize=(8, 5))
+    for name in algos:
+        dfs = [sanitize_df(d) for d in data[name]]
+
+        times_list, errs_list = [], []
+        for d in sorted(dfs):
+            # if stride > 1:
+            #     d = d.iloc[::stride, :].reset_index(drop=True)
+            if "time" not in d.columns:
+                continue
+            t = d["time"].to_numpy(dtype=float)
+            e = d[interest].to_numpy(dtype=float)
+            finite = np.isfinite(t) & np.isfinite(e)
+            t, e = t[finite], e[finite]
+            if t.size == 0 or e.size == 0:
+                continue
+            L = min(len(t), len(e))
+            if L > 0:
+                times_list.append(t[:L])
+                errs_list.append(e[:L])
+
+        if len(times_list) == 0:
+            continue
+
+        Lmin = min(len(t) for t in times_list)
+        T = np.vstack([t[:Lmin] for t in times_list])
+        E = np.vstack([e[:Lmin] for e in errs_list])
+
+        mean_t = T.mean(0)
+        mean_e = E.mean(0)
+        std_e  = E.std(0)
+
+        plt.plot(mean_t, mean_e, color=color_map[name], linestyle=ls(name), label=name)
+        # plt.xlim((-0.2, 400))
+        # if show_bands:
+        #     plt.fill_between(mean_t, mean_e - std_e, mean_e + std_e,
+        #                      color=color_map[name], alpha=0.15)
+
+    plt.xlabel("Time (s)")
+    plt.ylabel("Gap")
+    if ylog:
+        plt.yscale("log")
+    if size == 32: right = 40
+    elif size == 64: right = 1000
+    elif size == 100: right = 4000
+    else: right = None
+    plt.xlim(left=0, right=right)
+    plt.grid(alpha=0.3)
+    plt.legend(loc="upper right")
+    plt.title(f"{title_prefix} {title_suffix}")
+    plt.tight_layout()
+    plt.savefig(result_root + f"/alg_compare_time_{title_prefix}_{title_suffix}.pdf")
+    if figure_show:
+        plt.show()
+
+ID = {
+    "FashionMNIST": {1: [0, 1], 2: [2, 54698], 3: [3, 12580]},
+    "MNIST": {1: [0, 1], 2: [22, 54698], 3: [333, 12580]},
+    "ImageNet": {1: [0, 1], 2: [22, 4400], 3: [333, 12580]},
+    "DOTmark": {1: "Shapes", 2: "ClassicImages", 3: "MicroscopyImages", 4: "WhiteNoise"},
+}
+
+# choose data and experiment_id
+experiment_id = 3
+dataset_name = "ImageNet"  # MNIST, FashionMNIST, DOTmark, ImageNet
+size = 100
+figure_show = True
+
+this_dir = os.path.dirname(__file__)
+default_dir = os.path.join(this_dir, "data", dataset_name)
+
+if dataset_name == "FashionMNIST" or dataset_name == "MNIST" or dataset_name == "ImageNet":
+    pid, qid = ID[dataset_name][experiment_id]
+    RESULT_ROOT = f"Results/real/{dataset_name}/pid{pid}_qid{qid}"
+elif dataset_name == "DOTmark":
+    category = ID[dataset_name][experiment_id]
+    pid, qid = 2, 4
+    RESULT_ROOT = f"Results/real/{dataset_name}/{category}_size{size}"
+else:
+    raise ValueError(f"Unknown dataset name: {dataset_name}")
+
+os.makedirs(RESULT_ROOT, exist_ok=True)
+
+loaded = load_results(RESULT_ROOT)
+print(f"Loaded results for algorithms: {list(loaded.keys())}")
+
+downsample = {
+    "ExtraGrad": 20,
+    "IPOT": 20,
+}
+plot_from_loaded(
+    RESULT_ROOT,
+    loaded,
+    ylog=True,
+    show_bands=True,
+    title_prefix=f"{dataset_name}" if dataset_name != "DOTmark" else f"{category}{size}",
+    title_suffix=f"(ID1={pid}, ID2={qid})",
+    downsample_map=downsample,
+    default_stride=1,
+    solid_algos="IBSN",
+    figure_show=figure_show
+)

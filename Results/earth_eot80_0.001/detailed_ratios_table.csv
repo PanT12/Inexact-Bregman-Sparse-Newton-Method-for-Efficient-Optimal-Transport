@@ -1,0 +1,10 @@
+,Total Time Ratio,Total Time Ratio,Total Time Ratio,Total Time Ratio,Total Time Ratio,Time/Step Ratio,Time/Step Ratio,Time/Step Ratio,Time/Step Ratio,Time/Step Ratio,CG Iter Ratio,CG Iter Ratio,CG Iter Ratio,CG Iter Ratio,CG Iter Ratio
+algo,(E)IBSN,(E)PINS,SPLR,SSNS,Sinkhorn,(E)IBSN,(E)PINS,SPLR,SSNS,Sinkhorn,(E)IBSN,(E)PINS,SPLR,SSNS,Sinkhorn
+n_demand,,,,,,,,,,,,,,,
+80,1.0,2.24,31.5,2.81,1.45,1.0,2.74,1.45,3.94,0.07,1.0,2.68,1.31,3.05,0.0
+800,1.0,1.91,54.09,3.85,3.28,1.0,3.41,1.84,6.13,0.08,1.0,3.33,1.88,4.13,0.0
+8000,1.0,4.89,71.55,6.64,2.11,1.0,5.72,1.81,8.43,0.06,1.0,6.24,3.38,7.52,0.0
+40000,1.0,8.41,106.75,14.33,2.3,1.0,8.51,2.36,11.1,0.05,1.0,7.12,3.09,7.96,0.0
+80000,1.0,8.92,101.66,10.71,1.9,1.0,8.44,2.51,12.39,0.05,1.0,7.98,4.05,10.8,0.0
+400000,1.0,18.2,131.33,15.76,1.76,1.0,11.77,2.98,15.69,0.04,1.0,10.71,4.06,15.33,0.0
+800000,1.0,16.57,136.21,13.87,1.61,1.0,9.54,3.09,13.81,0.04,1.0,9.79,3.32,15.55,0.0
